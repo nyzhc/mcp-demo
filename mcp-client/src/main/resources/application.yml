@@ -1,0 +1,18 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: mcp-client
+  ai:
+    mcp:
+      client:
+        enabled: true
+        name: demo-mcp-client
+        version: 1.0.0
+        request-timeout: 30s
+        type: ASYNC
+        sse:
+          connections:
+            server1:
+              url: http://localhost:8090 
