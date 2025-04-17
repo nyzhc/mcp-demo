@@ -1,0 +1,73 @@
+name: Test Run MCP Demo
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  test-run:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+    
+    - name: Build server
+      run: |
+        cd mcp-server
+        mvn clean package
+        
+    - name: Build client
+      run: |
+        cd mcp-client
+        mvn clean package
+        
+    - name: Start server
+      run: |
+        cd mcp-server
+        nohup java -jar target/*.jar > server.log 2>&1 &
+        sleep 10  # 等待服务启动
+        
+    - name: Start client
+      run: |
+        cd mcp-client
+        nohup java -jar target/*.jar > client.log 2>&1 &
+        sleep 5  # 等待客户端启动
+        
+    - name: Test API
+      run: |
+        # 测试Java搜索
+        echo "Testing Java search..."
+        JAVA_RESULT=$(curl -s "http://localhost:8080/search?keyword=java")
+        echo "Java search result: $JAVA_RESULT"
+        
+        # 测试Python搜索
+        echo "Testing Python search..."
+        PYTHON_RESULT=$(curl -s "http://localhost:8080/search?keyword=python")
+        echo "Python search result: $PYTHON_RESULT"
+        
+        # 检查服务状态
+        echo "Checking service status..."
+        ps aux | grep mcp
+        
+        # 显示日志
+        echo "Server logs:"
+        cat mcp-server/server.log
+        echo "Client logs:"
+        cat mcp-client/client.log
+        
+    - name: Upload logs
+      if: always()  # 即使前面步骤失败也上传日志
+      uses: actions/upload-artifact@v3
+      with:
+        name: service-logs
+        path: |
+          mcp-server/server.log
+          mcp-client/client.log 
